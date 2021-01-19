@@ -1,6 +1,6 @@
 # Final Project: Mesh Simplification and Remeshing
 
-For reference, our writeup is on this [Google Doc](https://docs.google.com/document/d/1qjw-ya-W3nCAa2ioy9zzPrihgbScVYsUZLmRqXt_J2I/edit).
+For more information on this project please visit our personale website: [Google Doc](https://docs.google.com/document/d/1qjw-ya-W3nCAa2ioy9zzPrihgbScVYsUZLmRqXt_J2I/edit).
 
 ## Updates
 
