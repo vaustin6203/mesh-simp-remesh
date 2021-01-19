@@ -1,0 +1,330 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Mesh Editor</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2020</h1>
+<h1 align="middle">Project 2: Mesh Editor</h1>
+<h2 align="middle">Kyle Rentschler, CS184</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>This project introduced us to core concepts in 3D rendering by implementing increasingly more complicated tasks working with points in 3D space.
+  We started with the core building blocks, drawing 2D Bezier curves, and eventually worked our way up to loop subdision for mesh upsampling to render smooth surfaces.
+  As a whole, we now have a complete 3D rendering system capable of displaying mesh objects (with a lovely GUI provided for us).
+  I found it very interesting to see how even complicated 3D manipulation and rendering is just built on lots of small operations, with de Casteljau's algorithm being the crux of rendering lines/curves from control points.
+  I also learned a lot about mesh traversal and how powerful the simple halfedge data structure is for representing and manipulating 3D objects.
+</p>
+
+<h2 align="middle">Section I: Bezier Curves and Surfaces</h2>
+
+<h3 align="middle">Part 1: Bezier curves with 1D de Casteljau subdivision</h3>
+
+<p>
+  De Casteljau's algorithm works with <i>n</i> control points and a value <i>t</i> between (0,1).
+  The algorithm is evaluated in stages, where at each level a linear interpolation (lerp) is performed between each pair of neighboring points, such that you take a weighted average of the two points where the weights are determined by <i>t</i>.
+
+  You take (1-<i>t</i> ) of the "first" point and (<i>t</i> ) of the "second point", making sure to be consistent in the order in which the point pairs are chosen.
+
+  To implement this, my function takes in a list of <i>p</i> points and a value <i>t</i> and performs linear interpolation to get a list of <i>p-1</i> points.
+  This process can keep being repeated until you are left with a single point, which is a point on the curve.
+
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/part1_0.png" align="middle" width="400px"/>
+        <figcaption align="middle">Original control points.</figcaption>
+      </td>
+      <td>
+        <img src="images/part1_1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Level 1.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/part1_2.png" align="middle" width="400px"/>
+        <figcaption align="middle">Level 2.</figcaption>
+      </td>
+      <td>
+        <img src="images/part1_3.png" align="middle" width="400px"/>
+        <figcaption align="middle">Level 3.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/part1_4.png" align="middle" width="400px"/>
+        <figcaption align="middle">Level 4.</figcaption>
+      </td>
+      <td>
+        <img src="images/part1_5.png" align="middle" width="400px"/>
+        <figcaption align="middle">Level 5.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<div align="middle">
+  <img src="images/part1_6.png" align="middle" width="800px"/>
+  <figcaption align="middle">Final curve.</figcaption>
+</div>
+
+<div align="middle">
+  <img src="images/part1_diff.png" align="middle" width="800px"/>
+  <figcaption align="middle">A different curve with new <i>t</i> value and new control points.</figcaption>
+</div>
+
+
+<h3 align="middle">Part 2: Bezier surfaces with separable 1D de Casteljau subdivision</h3>
+
+<p>
+  The de Casteljau algorithm extends to Bezier surfaces by first evaluting all bezier curves along one of the axes, and then "collapsing" them down along the other axis using the same bezier curve lerp algorithm.
+  Put another way, we can imagine that all of the control points are organized into a neat grid (at least initially before they are moved) where each of the control points corresponds to some row <i>i</i>, and some column <i>j</i>.
+  Then, you can group together all of the <i>m</i> points in the <i>i</i>-th row (or could go column-wise instead), and perform the normal de Casteljau algorithm with parameter <i>u</i>.
+  This will yield <i>n</i> remaining points, which you can then apply the normal de Casteljau algorithm with parameter <i>v</i> to get a final point.
+  This point lies on the 3D surface determined by the control points and parameters <i>u</i>, <i>v</i>.
+</p>
+
+<div align="middle">
+  <img src="images/task2.png" align="middle" width="800px"/>
+  <figcaption align="middle">teapot.bez as evaluated by my implementation (rotated and zoomed in slightly) .</figcaption>
+</div>
+
+<h2 align="middle">Section II: Sampling</h2>
+
+<h3 align="middle">Part 3: Average normals for half-edge meshes</h3>
+
+<p>
+  To implement area-weighted vertex normals, I find the normal vector for all triangles connected to a vertex and take the average of these vectors.
+  To calculate the normal vector, you find the neighboring vertices by accessing the vertex's halfedge's next's vertex and the vertex's halfedge's next's next's vertex (say that 5 times quickly).
+  You can then compute the difference vectors between these two points and the origin vertex, and the cross product of these resulting two difference vectors is the un-normalized normal vector for the triangle.
+  While I could explicitly find the area of the triangle and scale the vector accordingly, this is unnecessary because the normal vector for each triangle is already proportional to its area.
+  It suffices to simply make sure to normalize the weighted average vector at the end by calling .unit().
+  To traverse the neighboring triangles, I can access the vertex's halfedge's twin's next and advance the pointer to there.
+  With this, you just traverse all neighboring triangles, calculate their normal vectors, and then return the average of these vectors at the end.
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task3_1.png" align="middle" width="500px"/>
+        <figcaption align="middle">With vertex normals.</figcaption>
+      </td>
+      <td>
+        <img src="images/task3_2.png" align="middle" width="500px"/>
+        <figcaption align="middle">Without vertex normals.</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
+
+<h3 align="middle">Part 4: Half-edge flip</h3>
+
+<p>
+  The key to implementing edge flip was to first draw out a labeled diagram of how all components of the half edges behave in a flip, and then just respect the abstraction barrier and reassign the component pointers accordingly.
+  A super helpful resource for this part was the guide on <a href="http://15462.courses.cs.cmu.edu/fall2015content/misc/HalfedgeEdgeOpImplementationGuide.pdf">Correctly Implementing Edge Flip / Split / Collapse</a> to give a visual of the half edge component transformations and an example of how to access the attributes in code.
+  The logic for this part was simple, the hard part was making sure all of the tedious reassignments were done correctly.
+  My code was of course buggy the first time I ran it, so as a sanity check I commented it out and wrote new code that reassigned all components to their existing pointers.
+  This way, I could make sure I wasn't causing any issues with accessing attributes or memory errors from assignments.
+  Once I determined that was working (as in doing nothing when I tried to flip), I then went through every operation again and triple checked that the assignments were to the correct components.
+  Lo and behold, I found a couple errors where I had used the wrong half edge and once I fixed those it worked.
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task4-1.png" align="middle" width="500px"/>
+        <figcaption align="middle">Standard mesh.</figcaption>
+      </td>
+      <td>
+        <img src="images/task4-2.png" align="middle" width="500px"/>
+        <figcaption align="middle">Mesh with some edges flipped.</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
+
+
+<h3 align="middle">Part 5: Half-edge split</h3>
+
+<p>
+  Similar to part 4, the approach to this involved first drawing a labeled diagram of how all components of the half edges behave in a flip, and then handling component pointers accordingly.
+  This task had the added complexity of needing to initialize new half edge component pointers and assign them in addition to reassigning existing variables.
+  To simplify things, I modeled a split as effectively "bringing up" the bottom vertex of the lower triangle and then creating another triangle underneath it.
+  This minimized pointer creation/reassignment which in turn made it easier to implement.
+
+</p>
+
+<p>
+  Here are some sample images:
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task5-1.png" align="middle" width="500px"/>
+        <figcaption align="middle">Standard mesh.</figcaption>
+      </td>
+      <td>
+        <img src="images/task5-2.png" align="middle" width="500px"/>
+        <figcaption align="middle">Mesh with some edges split.</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task5-1.png" align="middle" width="500px"/>
+        <figcaption align="middle">Standard mesh.</figcaption>
+      </td>
+      <td>
+        <img src="images/task5-3.png" align="middle" width="500px"/>
+        <figcaption align="middle">Mesh with some edges split and some edges flipped.</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
+
+<p>
+  As far as my debugging process, I initially pursued an approach that involved maintaining the original structure as much as possible, and splitting the necessary edges into two new edges (leaving the original edge pointers unassigned).
+  This strategy continued to cause errors, even after I triple checked the assignments to make sure they were accurate.
+  I then opted for a strategy that resued all existing component pointers and created fewer new ones (the strategy I described above where I "pull up" a vertex and add on).
+  This version worked and didn't have bugs so I went with it.
+</p>
+
+
+<h3 align="middle">Part 6: Loop subdivision for mesh upsampling</h3>
+
+<p>
+  To implement loop subdivision, we can split the job into a series of smaller tasks and complete them in order.
+  The first is to handle edge and vertex age, so we do a loop at the begining to assing all existing edges and vertices as old, and then augment our split function to assign the edge and vertex components it creates as new.
+  This will enforce that the isNew attribute is accurate for all components, and makes the rest of the implementation much more straightforward.
+  Next, we calculate the newPosition for all existing vertices and edges, before anything changes. We will use this later. Note that there are two separate loops for this because there are different rules for new and old vertices (new vertices newPosition has to temporarily be stored in the edge that they will be placed on).
+  Then, loop through all edges and split all old edges.
+  Note that this process adds edges to the iterator as we go, so to avoid infinite loops we must only split edges that are not new and are also connected between two vertices that are not new.
+  Next, loop through the edges again and flip all edges that are between a new and an old vertex (where our isNew correctness property comes in handy again).
+  Finally, go through all vertices and update their position to be newPositon. For new vertices, we set the newPositon attribute in our split() function by accessing the edge's newPositon attribute that we computed earlier in this process.
+  For debugging this long series of steps, I tried implenting each step at a time and individually testing it to see if I got the expected behavior.
+  For example, making sure that doing everything up to only the edge splits was working and up to flipping and then finally the vertex reassignment.
+  This made it simple to pinpoint issues, and once everything came together it was easy to sort out the few remaining bugs by imagining the sections of code that couldn't be observed individually (e.g. the vertex new position assignment).
+
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/part6_9.png" align="middle" width="500px"/>
+        <figcaption align="middle">Original cow mesh.</figcaption>
+      </td>
+      <td>
+        <img src="images/part6_10.png" align="middle" width="500px"/>
+        <figcaption align="middle">The smoothing effect produced by loop subdivision.</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
+
+<p>
+  After loop subdivision, the meshes get smoothed out and rounded (see above for example).
+  Objects that first appeared very strange to be represented by a triangle mesh (such as the teapot) now look natural and complete.
+  Sharp edges essentially get "sheared" off after each subdivi loop, with the first loops doing the most intense changes.
+  This effect can be mitigated by splitting mesh components along sharp edges of the object into lots of smaller mesh edges.
+  As we can see with the cube, if we split the edges many times it preserves more of the original face because less of it gets "sheared off".
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/part6_7.png" align="middle" width="500px"/>
+        <figcaption align="middle">Cube with lots of edge splits on a face.</figcaption>
+      </td>
+      <td>
+        <img src="images/part6_8.png" align="middle" width="500px"/>
+        <figcaption align="middle">The effect of loop subdivision isn't as disruptive to the original face compared to if we just subdivided on the original edge.</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
+
+<p>
+  You can pre-process the cube to make it subdivide symmetrically by flipping all edges around the "belt" of the cube to be "leaning" in the same direction, and then splitting the diagonal edge on the top and bottom of the cube so that the face is then comprised of four equally-sized, radially-symmetric triangles.
+  Before this pre-processing, the cube divides asymmetrically because you have edges "facing" each other around the "belt", and the top and bottom faces being comprised of only two triangles.
+  The line of symmetry for these top and bottom faces is rotated 90 degrees relative to the side face of the cube, which casuses asymmetric shifts in the cube when it splits.
+  And the faces comprising the "belt" will split the same if they are all parallel rather than having pairs of them facing each other.
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/part6_1.png" align="middle" width="350px"/>
+        <figcaption align="middle">Standard square.</figcaption>
+      </td>
+      <td>
+        <img src="images/part6_2.png" align="middle" width="350px"/>
+        <figcaption align="middle">Square with "belt" edges flipped to be parallel and top edges split.</figcaption>
+      </td>
+      <td>
+        <img src="images/part6_3.png" align="middle" width="350px"/>
+        <figcaption align="middle">1 level of loop subdivision.</figcaption>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        <img src="images/part6_4.png" align="middle" width="350px"/>
+        <figcaption align="middle">2 levels of loop subdivision.</figcaption>
+      </td>
+      <td>
+        <img src="images/part6_5.png" align="middle" width="350px"/>
+        <figcaption align="middle">3 levels of loop subdivision.</figcaption>
+      </td>
+      <td>
+        <img src="images/part6_6.png" align="middle" width="350px"/>
+        <figcaption align="middle">Looks symmetric enough to make Tim Cook happy.</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
