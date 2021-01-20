@@ -96,11 +96,14 @@ Continue working on reach goals (time permitting)
 Write about reach goals (if achieved)
 
 # Resources: 
-The primary inspiration for this project is from this assignment from Carnegie Mellon University. For software resources, we will be starting with a completed CS184 Assignment 2 codebase from one of our projects and utilizing all the same libraries and frameworks in the code base along with the sample mesh files and GUI. The computing platform and hardware we will use are personal machines. In addition, we will be using the following online resources (more to potentially follow).
-This paper on quadric error metrics by Garland and Heckbert, the original creators of this method
-This lecture from Stanford on isotropic remeshing 
-This lecture from USC on isotropic remeshing 
-This lecture from Princeton to help with quadric error metric implementation
+The primary inspiration for this project is from http://462cmu.github.io/asst2_meshedit/ assignment from Carnegie Mellon University. For software resources, we will be starting with a completed CS184 Assignment 2 codebase from one of our projects and utilizing all the same libraries and frameworks in the code base along with the sample mesh files and GUI. The computing platform and hardware we will use are personal machines. In addition, we will be using the following online resources (more to potentially follow).
+
+1. https://www.ri.cmu.edu/pub_files/pub2/garland_michael_1997_1/garland_michael_1997_1.pdf paper on quadric error metrics by Garland and Heckbert, the original creators of this method
+
+2. http://graphics.stanford.edu/courses/cs468-12-spring/LectureSlides/13_Remeshing1.pdf lecture from Stanford on isotropic remeshing 
+
+3. http://www.hao-li.com/cs599-ss2015/slides/Lecture09.1.pdf lecture from USC on isotropic remeshing 
+4. https://www.cs.princeton.edu/courses/archive/fall06/cos526/lectures/simplification.pdf lecture from Princeton to help with quadric error metric implementation
 Possibly use this lecture from Michigan Tech on vertex decimation if we decide to pivot or include it as a reach goal 
 Possibly us this https://tel.archives-ouvertes.fr/tel-00838783/file/these.pdf paper on how to calculate the Hausdorff distance between two meshes 
 Possibly use this http://downloads.hindawi.com/journals/sp/2019/4926190.pdf paper on Fast Mesh Simplification with Feature-Preserving Efficiency 
