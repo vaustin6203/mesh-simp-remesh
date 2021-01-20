@@ -1,5 +1,4 @@
-## CS184 Final Project 
-# Mesh Simplification and Remeshing
+## Mesh Simplification and Remeshing
 Victoria Austin, Kyle Rentschler, Max Yao
 
 # Summary 
